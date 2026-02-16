@@ -4,17 +4,24 @@ import { Comment } from "../models/comment.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import mongoose from "mongoose";
 
-const getVideoComments = asyncHandler(async (req, res) => {
-  const { videoId } = req.params;
+const getComments = asyncHandler(async (req, res) => {
+  const { videoId, tweetId } = req.params;
   const { page = 1, limit = 10 } = req.query;
 
-  if (!videoId) throw new ApiError(400, "Video Id is missing");
+  // Determine which type and validate
+  const contentType = videoId ? "video" : tweetId ? "tweet" : null;
+  const contentId = videoId || tweetId;
+
+  if (!contentId) 
+    throw new ApiError(400, `${contentType === "video" ? "Video" : "Tweet"} Id is missing`);
+
+  const matchStage = contentType === "video" 
+    ? { video: new mongoose.Types.ObjectId(contentId) }
+    : { tweet: new mongoose.Types.ObjectId(contentId) };
 
   const comments = await Comment.aggregate([
     {
-      $match: {
-        video: new mongoose.Types.ObjectId(videoId),
-      },
+      $match: matchStage,
     },
     {
       $lookup: {
@@ -54,7 +61,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
       },
     },
     {
-      $skip: (parseInt(page) - 1) * limit,
+      $skip: (parseInt(page) - 1) * parseInt(limit),
     },
     {
       $limit: parseInt(limit),
@@ -64,6 +71,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
         _id: 1,
         content: 1,
         video: 1,
+        tweet: 1,
         owner: {
           username: 1,
           avatar: { url: 1 },
@@ -77,33 +85,39 @@ const getVideoComments = asyncHandler(async (req, res) => {
   ]);
 
   if (!comments)
-    throw new ApiError(500, "Error while fetching Video Comments!");
+    throw new ApiError(500, "Error while fetching comments!");
 
-  const totalComments = await Comment.countDocuments({ video: videoId });
+  const totalComments = await Comment.countDocuments(matchStage);
 
   return res.status(200).json(
     new ApiResponse(200, "Fetched comments successfully!", {
       comments,
       totalComments,
       page,
-      TotalPages: parseInt(totalComments / limit),
+      totalPages: Math.ceil(totalComments / limit),
     })
   );
 });
 
 const addComment = asyncHandler(async (req, res) => {
   const { content } = req.body;
-  const { videoId } = req.params;
+  const { videoId, tweetId } = req.params;
 
-  if (!videoId) throw new ApiError(400, "Video Id is missing");
+  const contentId = videoId || tweetId;
+  const contentType = videoId ? "video" : "tweet";
+
+  if (!contentId) throw new ApiError(400, `${contentType === "video" ? "Video" : "Tweet"} Id is missing`);
   if (content.trim() === "") throw new ApiError(400, "Comment is empty!");
 
-  //:TODO
-  const addedComment = await Comment.create({
+  const commentData = {
     content: content,
-    video: videoId,
     owner: req.user?._id,
-  });
+  };
+
+  // Add either video or tweet field based on content type
+  commentData[contentType] = contentId;
+
+  const addedComment = await Comment.create(commentData);
 
   if (!addedComment) throw new ApiError(500, "Error while adding the comment!");
 
@@ -158,4 +172,4 @@ const deleteComment = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, "Comment deleted successfully", {}));
 });
 
-export { getVideoComments, addComment, updateComment, deleteComment };
+export { getComments, addComment, updateComment, deleteComment };
