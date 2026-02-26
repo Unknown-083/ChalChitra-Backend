@@ -3,7 +3,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { Tweet } from "../models/tweet.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import mongoose, { isValidObjectId } from "mongoose";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { deleteOnCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js";
 
 const createTweet = asyncHandler(async (req, res) => {
   const { content } = req.body;
@@ -199,6 +199,16 @@ const deleteTweet = asyncHandler(async (req, res) => {
 
   if (!(tweetId && isValidObjectId(tweetId)))
     throw new ApiError(400, "Valid tweetId is required!");
+
+  const tweet = await Tweet.findById(tweetId);
+
+  if (!tweet) throw new ApiError(404, "Tweet not found!");
+  console.log(tweet);
+
+  if (tweet.image && tweet.image.publicId) {
+    const deleteImage = await deleteOnCloudinary(tweet.image?.publicId);
+    if (!deleteImage) throw new ApiError(500, "Error while deleting tweet image from cloudinary!");
+  }
 
   const response = await Tweet.findByIdAndDelete(tweetId, { new: true });
 

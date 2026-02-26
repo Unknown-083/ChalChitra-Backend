@@ -13,9 +13,11 @@ import { Router } from "express";
 
 const router = Router();
 
+router.route("/").get(getAllVideos);
+router.route("/:videoId").get(verifyVideo, getVideoById);
+
 router.use(verifyJWT);
 
-router.route("/").get(getAllVideos);
 
 router.route("/upload-video").post(
   upload.fields([
@@ -30,8 +32,6 @@ router.route("/upload-video").post(
   ]),
   publishAVideo
 );
-
-router.route("/:videoId").get(verifyVideo, getVideoById);
 
 router.route("/delete/:videoId").delete(verifyVideo, deleteVideo);
 

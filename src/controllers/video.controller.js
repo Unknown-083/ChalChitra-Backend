@@ -126,8 +126,8 @@ const getVideoById = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
   // User Id should be valid object id or null
   let userId = null;
-  if (req.user && req.user.id) {
-    userId = new mongoose.Types.ObjectId(req.user.id);
+  if (req.user && req.user._id) {
+    userId = new mongoose.Types.ObjectId(req.user._id);
   }
 
   const views = await Video.findByIdAndUpdate(
@@ -143,15 +143,15 @@ const getVideoById = asyncHandler(async (req, res) => {
   // Watch History can be implemented here
 
   const watchHistoryExists = await User.findOne({
-    _id: req.user._id,
+    _id: req.user?._id,
     watchHistory: { $in: [videoId] }
   });
 
   console.log("Watch History :: ", watchHistoryExists);
 
-  if (!watchHistoryExists) {
+  if (!watchHistoryExists && req.user) {
     const user = await User.findByIdAndUpdate(
-      req.user._id,
+      req.user?._id,
       {
         $push: { watchHistory: videoId }
       },

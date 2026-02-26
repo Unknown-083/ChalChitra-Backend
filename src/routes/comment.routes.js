@@ -4,17 +4,18 @@ import { Router } from "express";
 
 const router = Router();
 
-router.use(verifyJWT);
 
 // Video comments routes
 router.route("/v/:videoId")
-    .get(getComments)
-    .post(addComment)
+.get(getComments)
+.post(verifyJWT, addComment)
 
 // Tweet comments routes
 router.route("/t/:tweetId")
-    .get(getComments)
-    .post(addComment)
+.get(getComments)
+.post(verifyJWT, addComment)
+
+router.use(verifyJWT);
 
 // Comment update and delete routes (works for both video and tweet comments)
 router.route("/:commentId")
