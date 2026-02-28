@@ -33,7 +33,7 @@ router.route("/register").post(
 
 router.route("/login").post(loginUser);
 
-router.route("/c/:id").get(verifyJWT, getUserChannelProfile);
+router.route("/c/:id").get(getUserChannelProfile);
 // Secured Routes
 
 router.route("/logout").post(verifyJWT, logoutUser);
