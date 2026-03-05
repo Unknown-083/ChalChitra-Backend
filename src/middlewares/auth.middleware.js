@@ -21,3 +21,16 @@ export const verifyJWT = asyncHandler(async(req, _, next) => {
         throw new ApiError(500, error?.message || "Something went wrong while verifying JWT");
     }
 })
+
+export const verifyJWTWithoutError = asyncHandler(async(req, _, next) => {
+    try {
+        const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "")
+        const tokenInfo = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET)
+        const user = await User.findById(tokenInfo?._id).select("-password -refreshToken");
+        req.user = user;
+        next();
+    } catch (error) {
+        req.user = null;
+        next();
+    }
+})

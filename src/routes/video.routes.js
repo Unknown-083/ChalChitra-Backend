@@ -6,7 +6,7 @@ import {
   updateVideoDetails,
   updateVideoThumbnail,
 } from "../controllers/video.controller.js";
-import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { verifyJWT, verifyJWTWithoutError } from "../middlewares/auth.middleware.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { verifyVideo } from "../middlewares/verifyVideo.middleware.js";
 import { Router } from "express";
@@ -14,7 +14,7 @@ import { Router } from "express";
 const router = Router();
 
 router.route("/").get(getAllVideos);
-router.route("/:videoId").get(verifyVideo, getVideoById);
+router.route("/:videoId").get(verifyJWTWithoutError ,verifyVideo, getVideoById);
 
 router.use(verifyJWT);
 

@@ -342,9 +342,8 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
   const { id } = req.params;
   let userId = null;
 
-  // User Id should be valid object id or null
-  if (req.user && req.user.id) {
-    userId = new mongoose.Types.ObjectId(req.user.id);
+  if (req.user?._id) {
+    userId = String(req.user._id);
   }
 
   if (!(id && isValidObjectId(id))) throw new ApiError(400, "Valid Channel ID is required!");
@@ -420,7 +419,18 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
             if: {
               $and: [
                 { $ne: [userId, null] },
-                { $in: [userId, "$subscribers.subscriber"] }
+                { 
+                  $in: [
+                    userId, 
+                    {
+                      $map: {
+                        input: "$subscribers",
+                        as: "sub",
+                        in: { $toString: "$$sub.subscriber" }
+                      }
+                    }
+                  ] 
+                }
               ]
             },
             then: true,
@@ -442,7 +452,8 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         totalVideos: 1,
         totalViews: 1,
         createdAt: 1,
-        videos: 1
+        videos: 1,
+        subscribers: 1,
       },
     },
   ]);
